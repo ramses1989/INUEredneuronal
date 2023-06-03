@@ -1,0 +1,54 @@
+import torch
+from transformers import BertModel, BertTokenizer, GPT2LMHeadModel, GPT2Tokenizer
+from ipywidgets import interact, interactive, fixed, interact_manual
+import ipywidgets as widgets
+
+# Cargar los modelos BERT y GPT-2 una vez fuera de las funciones
+bert_model_name = 'bert-base-uncased'
+bert_tokenizer = BertTokenizer.from_pretrained(bert_model_name)
+bert_model = BertModel.from_pretrained(bert_model_name)
+
+gpt2_model_name = 'gpt2'
+gpt2_tokenizer = GPT2Tokenizer.from_pretrained(gpt2_model_name)
+gpt2_model = GPT2LMHeadModel.from_pretrained(gpt2_model_name)
+
+# Clasificación de texto con BERT
+def classify_text(prompt):
+    try:
+        input_ids = bert_tokenizer.encode(prompt, add_special_tokens=True)
+        input_ids = torch.tensor(input_ids).unsqueeze(0)
+        bert_model.eval()  # Poner el modelo en modo evaluación
+        with torch.no_grad():
+            bert_outputs = bert_model(input_ids)
+        bert_embeddings = bert_outputs.last_hidden_state
+        # Aquí puedes agregar tu código de clasificación utilizando los embeddings de BERT
+        # y devolver la clase o etiqueta predicha
+
+        # Por ahora, simplemente devolvemos los embeddings
+        return bert_embeddings
+    except Exception as e:
+        print("Error during text classification:", str(e))
+
+# Generación de texto condicional con GPT-2
+def generate_text(prompt):
+    try:
+        if prompt.strip() != '':
+            input_text = prompt.lower()
+            gpt2_input_ids = gpt2_tokenizer.encode(input_text, add_special_tokens=True, return_tensors='pt')
+            gpt2_model.eval()  # Poner el modelo en modo evaluación
+            with torch.no_grad():
+                gpt2_output = gpt2_model.generate(gpt2_input_ids, max_length=100, num_return_sequences=1)
+            generated_text = gpt2_tokenizer.decode(gpt2_output[0], skip_special_tokens=True)
+            return generated_text
+        else:
+            return "Prompt cannot be empty."
+    except Exception as e:
+        print("Error during text generation:", str(e))
+
+# Interfaz gráfica interactiva
+@interact
+def text_classification_and_generation(prompt='Enter prompt:'):
+    bert_embeddings = classify_text(prompt)
+    generated_text = generate_text(prompt)
+    print("BERT embeddings:", bert_embeddings)
+    print("Generated text:", generated_text)
